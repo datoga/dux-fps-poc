@@ -320,7 +320,14 @@ class PluginPackageTests(unittest.TestCase):
                 mcp = json.loads(archive.read("mcp.json"))
                 skill = archive.read("skills/dux-create/SKILL.md").decode()
             openai = plugin["extensions"]["com.openai"]
-            self.assertLessEqual(len(openai["interface"]["shortDescription"]), 30)
+            interface = openai["interface"]
+            self.assertEqual(plugin["description"], "Turn an image into a shareable LibreQuake game with a custom pixel-art texture.")
+            self.assertLessEqual(len(interface["displayName"]), 30)
+            self.assertLessEqual(len(interface["shortDescription"]), 30)
+            self.assertTrue(interface["longDescription"].startswith("Choose an image"))
+            self.assertLessEqual(len(interface["defaultPrompt"]), 3)
+            self.assertTrue(all(len(prompt) <= 128 for prompt in interface["defaultPrompt"]))
+            self.assertEqual(openai["publication"]["translations"]["es-ES"]["subtitle"], "Convierte una foto en un juego")
             self.assertEqual(mcp["mcpServers"]["dux"]["url"], mcp_url)
             self.assertIn("name: dux-create", skill)
             self.assertEqual(len(openai["review"]["test_cases"]["positive"]), 5)
