@@ -61,10 +61,7 @@ def engine_ready() -> bool:
 
 
 def game_assets_ready() -> bool:
-    maps = (TARGET_MAP, *CAMPAIGN_TEXTURES_BY_MAP)
-    bundled_assets = all((GAME_ASSETS / name).is_file() for name in maps)
-    bundled_palette = (GAME_ASSETS / "gfx/palette.lmp").is_file()
-    return (bundled_assets and bundled_palette) or (PAK0.is_file() and PAK1.is_file())
+    return (GAME_ASSETS / "gfx/palette.lmp").is_file() or (PAK0.is_file() and PAK1.is_file())
 
 
 def load_game_asset(name: str) -> bytes:
@@ -283,19 +280,12 @@ def make_game(texture_rgba: bytes, width: int, height: int) -> tuple[str, int]:
         raise ValueError(f"Texture must be exactly {TEXTURE_WIDTH}x{TEXTURE_HEIGHT}")
     if not game_assets_ready():
         raise RuntimeError("LibreQuake game assets are missing")
-    bsp = load_game_asset(TARGET_MAP)
     palette = load_game_asset("gfx/palette.lmp")
-    custom_bsp = build_miptex(bsp, TARGET_TEXTURE, texture_rgba, width, height, palette)
-    customized_maps = {TARGET_MAP: custom_bsp}
-    for map_name, texture_names in CAMPAIGN_TEXTURES_BY_MAP.items():
-        campaign_bsp = load_game_asset(map_name)
-        for texture_name in texture_names:
-            campaign_bsp = build_miptex(campaign_bsp, texture_name, texture_rgba, width, height, palette)
-        customized_maps[map_name] = campaign_bsp
+    indexed_texture = nearest_palette_indices(texture_rgba, palette, width, height)
     game_id = uuid.uuid4().hex[:12]
     created_at = int(time.time())
     expires = created_at + FREE_TTL_SECONDS
-    pak_bytes = make_pak(customized_maps)
+    pak_bytes = make_pak({"gfx/dux_texture.lmp": indexed_texture})
     DATA.mkdir(parents=True, exist_ok=True)
     game_dir = DATA / game_id
     staging_dir = DATA / f".{game_id}.tmp"

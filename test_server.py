@@ -13,7 +13,7 @@ from unittest.mock import patch
 from tools.package_chatgpt_plugin import build_plugin_manifest, normalize_mcp_url
 
 import server
-from engine.build_runtime import curated_game_assets, curated_pak
+from engine.build_runtime import curated_game_assets, curated_pak, texture_override_header
 
 
 def make_test_bsp(textures: tuple[tuple[str, int], ...]) -> bytes:
@@ -78,14 +78,17 @@ class PakTests(unittest.TestCase):
                 "maps/lq_e1m1.bsp": b"episode",
             }))
 
-    def test_runtime_source_assets_include_only_customized_maps_and_palette(self):
+    def test_runtime_source_assets_include_only_the_palette(self):
         with fixture_paks() as (pak0, _, _):
             assets = curated_game_assets(pak0)
-        self.assertEqual(set(assets), {
-            server.TARGET_MAP,
-            *server.CAMPAIGN_TEXTURES_BY_MAP,
-            "gfx/palette.lmp",
-        })
+        self.assertEqual(set(assets), {"gfx/palette.lmp"})
+
+    def test_engine_override_targets_cover_start_and_campaign_textures(self):
+        header = texture_override_header()
+        targets = {server.TARGET_TEXTURE, *(name for names in server.CAMPAIGN_TEXTURES_BY_MAP.values() for name in names)}
+        self.assertTrue(all(f'"{name}"' in header for name in targets))
+        self.assertIn('"gfx/dux_texture.lmp"', header)
+        self.assertIn("MIPLEVELS", header)
 
     def test_replacement_map_has_valid_lumps_and_custom_texture(self):
         with fixture_paks() as (pak0, _, bsp), patch.object(server, "PAK0", pak0):
@@ -105,7 +108,7 @@ class PakTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must be exactly"):
             server.make_game(bytes([0, 0, 0, 255]) * 64, 8, 8)
 
-    def test_create_game_writes_customized_maps_and_preview(self):
+    def test_create_game_writes_a_small_texture_package_and_preview(self):
         with fixture_paks() as (pak0, pak1, _), tempfile.TemporaryDirectory() as temp, \
                 patch.object(server, "PAK0", pak0), patch.object(server, "PAK1", pak1), \
                 patch.object(server, "DATA", Path(temp)), \
@@ -116,20 +119,16 @@ class PakTests(unittest.TestCase):
             game_dir = Path(temp) / game_id
             manifest = json.loads((game_dir / "manifest.json").read_text())
             pack = server.pak_entries((game_dir / "pak2.pak").read_bytes())
-            modified = pack[server.TARGET_MAP]
-            self.assertEqual(set(pack), {server.TARGET_MAP, *server.CAMPAIGN_TEXTURES_BY_MAP})
+            indexed = pack["gfx/dux_texture.lmp"]
+            self.assertEqual(set(pack), {"gfx/dux_texture.lmp"})
+            self.assertEqual(len(indexed), 128 * 128)
+            self.assertLess((game_dir / "pak2.pak").stat().st_size, 17_000)
             self.assertEqual(manifest["gameId"], game_id)
             self.assertEqual(manifest["expiresAt"], expires)
             self.assertEqual((manifest["width"], manifest["height"]), (width, height))
-            self.assertEqual((server.texture_info(modified, server.TARGET_TEXTURE)[3], server.texture_info(modified, server.TARGET_TEXTURE)[4][0]), (16, 16))
-            for map_name, texture_names in server.CAMPAIGN_TEXTURES_BY_MAP.items():
-                campaign = pack[map_name]
-                for name in texture_names:
-                    info = server.texture_info(campaign, name)
-                    self.assertEqual((info[3], info[4][0]), (16, 16))
             self.assertEqual((game_dir / "texture.rgba").read_bytes(), rgba)
 
-    def test_create_game_works_from_bundled_maps_without_source_paks(self):
+    def test_create_game_works_from_palette_bundle_without_source_paks(self):
         with fixture_paks() as (pak0, _, _), tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             assets = root / "game-assets"
@@ -147,7 +146,8 @@ class PakTests(unittest.TestCase):
                 self.assertTrue(server.game_assets_ready())
                 game_id, _ = server.make_game(rgba, server.TEXTURE_WIDTH, server.TEXTURE_HEIGHT)
             package = server.pak_entries((data / game_id / "pak2.pak").read_bytes())
-            self.assertEqual(set(package), {server.TARGET_MAP, *server.CAMPAIGN_TEXTURES_BY_MAP})
+            self.assertEqual(set(package), {"gfx/dux_texture.lmp"})
+            self.assertEqual(len(package["gfx/dux_texture.lmp"]), 128 * 128)
 
     def test_mcp_exposes_creator_and_tool_schema(self):
         handler = object.__new__(server.Handler)

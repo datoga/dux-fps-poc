@@ -53,7 +53,7 @@ For OpenAI domain verification, set `DUX_OPENAI_APPS_CHALLENGE` to the exact tok
 
 ## Docker deployment
 
-The included Docker image builds Qwasm and the shared LibreQuake runtime, extracts only the source maps and palette needed for texture packaging, then runs the standard-library web/API server. Build context needs the two `librequake-assets/*.pak` files described above; the full source PAKs are not copied into the final image. Persistent storage is configured through the `dux-games` Docker volume.
+The included Docker image builds Qwasm and the shared LibreQuake runtime, extracts only the palette used to convert each image, then runs the standard-library web/API server. Maps remain in the shared runtime, while each game stores only its indexed 128 × 128 texture (about 16 KB) in its own PAK. Build context needs the two `librequake-assets/*.pak` files described above; the full source PAKs are not copied into the final image. Persistent storage is configured through the `dux-games` Docker volume.
 
 ```sh
 DUX_PUBLIC_URL=https://play.example.com docker compose up --build
@@ -66,11 +66,11 @@ OpenAI and share links must use the same stable public HTTPS origin. A host with
 - `GET /v1/health` — API, LibreQuake asset, and browser-runtime readiness.
 - `POST /v1/games` — JSON `{ "width": 128, "height": 128, "rgba": "<base64 RGBA>" }`; returns the game ID, share URL, expiry, PAK URL, and whether this server can play it.
 - `GET /v1/games/{id}` — public game manifest until expiry.
-- `GET /v1/games/{id}/texture` and `/pak` — final texture pixels and customized map package.
+- `GET /v1/games/{id}/texture` and `/pak` — final texture pixels and the game's small indexed-texture package.
 - `POST /mcp` — stateless Streamable HTTP MCP endpoint with `open_creator`, `create_game`, and `get_game`, plus the `ui://widget/dux-create.html` resource.
 - `GET /play/{id}` — share page; `GET /privacy` and `/terms` serve the draft policy pages.
 
-The personalized package modifies a visible texture on the start map and each of the 16 campaign maps. It includes those campaign maps so that campaign transitions remain available. A typical runtime data package is about 140 MB uncompressed (about 62 MB gzip); the server serves a deterministic gzip sidecar when accepted by the browser. The runtime files are generated locally and are not committed.
+The shared engine applies the game's image texture to selected surfaces on the start map and across the 16 campaign maps. A typical runtime data package is about 140 MB uncompressed (about 62 MB gzip); the server serves a deterministic gzip sidecar when accepted by the browser. The runtime files are generated locally and are not committed.
 
 ## Tests
 
@@ -78,7 +78,7 @@ The personalized package modifies a visible texture on the start map and each of
 python3 -m unittest -v test_server.py
 ```
 
-The tests use synthetic BSP/PAK fixtures, exercise palette conversion and customized maps, and check MCP HTTP initialization, tool discovery, notifications, and stateless GET behavior. They do not need the LibreQuake files. Run `python3 tools/package_chatgpt_plugin.py --help` to inspect plugin-package options.
+The tests use synthetic BSP/PAK fixtures, exercise palette conversion, compact game packaging and engine texture-override targets, and check MCP HTTP initialization, tool discovery, notifications, and stateless GET behavior. They do not need the LibreQuake files. Run `python3 tools/package_chatgpt_plugin.py --help` to inspect plugin-package options.
 
 ## Licensing
 
