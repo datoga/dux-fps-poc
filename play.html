@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Partida Dux</title>
+    <title>Dux</title>
   <style>
     :root{color-scheme:dark;--bg:#09151c;--panel:#122831;--line:#2b4854;--mint:#93e6ce;--text:#eef7f8;--muted:#afc2c8;--pink:#ff9aae}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}main{max-width:1000px;margin:auto;padding:32px 20px}
@@ -28,27 +28,36 @@
 </head>
 <body>
   <main>
-    <header><div><div class="badge">Dux · partida compartida</div><h1>Tu imagen en el juego</h1></div><a href="/">Crear la mía</a></header>
-    <section class="screen" id="preview" aria-label="Vista previa de tu diseño"><div class="wall"></div><canvas class="poster" id="poster" width="32" height="32"></canvas><div class="crosshair"></div><div class="hud"><span>DISEÑO PERSONALIZADO</span><span>DUX</span></div></section>
-    <section class="game" id="game" aria-label="Juego"><iframe title="Partida Dux" id="engine" allow="fullscreen; gamepad; pointer-lock" allowfullscreen></iframe></section>
-    <section class="game-controls" id="gameControls" aria-label="Controles del juego">
-      <div class="control-set" aria-label="Moverse con W, A, S y D"><div class="keys" aria-hidden="true"><span class="key w">W</span><span class="key a">A</span><span class="key s">S</span><span class="key d">D</span></div><span class="control-label">Moverse</span></div>
-      <div class="control-set" aria-label="Mirar con el ratón y hacer clic para disparar"><svg class="mouse-icon" viewBox="0 0 36 48" aria-hidden="true"><path d="M18 2C9.7 2 4 8.4 4 17v14c0 8.4 5.7 15 14 15s14-6.6 14-15V17C32 8.4 26.3 2 18 2Z"/><line x1="18" y1="3" x2="18" y2="19"/><line class="wheel" x1="18" y1="10" x2="18" y2="14"/></svg><span class="control-label">Mirar · disparar</span></div>
-      <button class="fullscreen" id="fullscreen" type="button" aria-label="Jugar a pantalla completa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg><span>Pantalla completa</span></button>
+    <header><div><div class="badge" data-i18n="badge"></div><h1 data-i18n="title"></h1></div><a href="/" data-i18n="createMine"></a></header>
+    <section class="screen" id="preview" data-i18n-aria="previewLabel"><div class="wall"></div><canvas class="poster" id="poster" width="32" height="32"></canvas><div class="crosshair"></div><div class="hud"><span data-i18n="customDesign"></span><span>DUX</span></div></section>
+    <section class="game" id="game" data-i18n-aria="gameLabel"><iframe id="engine" allow="fullscreen; gamepad; pointer-lock" allowfullscreen></iframe></section>
+    <section class="game-controls" id="gameControls" data-i18n-aria="controlsLabel">
+      <div class="control-set" data-i18n-aria="moveLabel"><div class="keys" aria-hidden="true"><span class="key w">W</span><span class="key a">A</span><span class="key s">S</span><span class="key d">D</span></div><span class="control-label" data-i18n="move"></span></div>
+      <div class="control-set" data-i18n-aria="lookLabel"><svg class="mouse-icon" viewBox="0 0 36 48" aria-hidden="true"><path d="M18 2C9.7 2 4 8.4 4 17v14c0 8.4 5.7 15 14 15s14-6.6 14-15V17C32 8.4 26.3 2 18 2Z"/><line x1="18" y1="3" x2="18" y2="19"/><line class="wheel" x1="18" y1="10" x2="18" y2="14"/></svg><span class="control-label" data-i18n="look"></span></div>
+      <button class="fullscreen" id="fullscreen" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg><span></span></button>
     </section>
-    <div class="note" id="gameNote"><strong id="status">Preparando tu partida…</strong><p id="hint">Cargando el juego personalizado.</p><div id="diagnostics"><strong>No se pudo completar la carga.</strong><pre id="engineLog"></pre></div></div>
+    <div class="note" id="gameNote"><strong id="status" data-i18n="preparing"></strong><p id="hint" data-i18n="loading"></p><div id="diagnostics"><strong data-i18n="loadFailed"></strong><pre id="engineLog"></pre></div></div>
     <p id="expiry"></p>
   </main>
   <script>
     const id=location.pathname.split('/').pop(),preview=document.querySelector('#preview'),game=document.querySelector('#game'),controls=document.querySelector('#gameControls'),canvas=document.querySelector('#poster'),ctx=canvas.getContext('2d'),engine=document.querySelector('#engine'),gameNote=document.querySelector('#gameNote'),status=document.querySelector('#status'),hint=document.querySelector('#hint'),expiry=document.querySelector('#expiry'),fullscreen=document.querySelector('#fullscreen'),diagnostics=document.querySelector('#diagnostics'),engineLog=document.querySelector('#engineLog');
+    const english=(navigator.language||'es').toLowerCase().startsWith('en');
+    const T=english?{
+      badge:'Dux · shared game',title:'Your image in the game',createMine:'Create my own',previewLabel:'Preview of your design',customDesign:'CUSTOM DESIGN',gameLabel:'Game',controlsLabel:'Game controls',moveLabel:'Move with W, A, S and D',move:'Move',lookLabel:'Look with the mouse and click to fire',look:'Look · fire',fullscreen:'Full screen',exitFullscreen:'Exit full screen',preparing:'Preparing your game…',loading:'Loading your custom game.',loadFailed:'The game could not finish loading.',loadingGame:'Loading the game…',playHint:'Use WASD to move, the mouse to look, and the button to expand the game.',unavailable:'This game is no longer available.',availableUntil:'Available until',levelFailed:'The level could not start. Reload the page to try again.',tooSlow:'The level is taking too long to respond.',checkFailed:'Could not check the game status.',designReady:'Your design is ready to share.',previewReady:'This game is available as a preview.',engineUnavailable:'Playable mode is not available on this server.',textureFailed:'Could not load this game.'
+    }:{
+      badge:'Dux · partida compartida',title:'Tu imagen en el juego',createMine:'Crear la mía',previewLabel:'Vista previa de tu diseño',customDesign:'DISEÑO PERSONALIZADO',gameLabel:'Juego',controlsLabel:'Controles del juego',moveLabel:'Moverse con W, A, S y D',move:'Moverse',lookLabel:'Mirar con el ratón y hacer clic para disparar',look:'Mirar · disparar',fullscreen:'Pantalla completa',exitFullscreen:'Salir de pantalla completa',preparing:'Preparando tu partida…',loading:'Cargando el juego personalizado.',loadFailed:'No se pudo completar la carga.',loadingGame:'Cargando la partida…',playHint:'Usa WASD para moverte, el ratón para mirar y el botón para ampliar el juego.',unavailable:'Esta partida ya no está disponible.',availableUntil:'Disponible hasta el',levelFailed:'No se pudo iniciar el nivel. Recarga la página para intentarlo de nuevo.',tooSlow:'El nivel está tardando demasiado en responder.',checkFailed:'No se pudo comprobar el estado del juego.',designReady:'Tu diseño está listo para compartir.',previewReady:'Esta partida está disponible como vista previa.',engineUnavailable:'El modo jugable no está disponible en este servidor todavía.',textureFailed:'No se pudo cargar esta partida.'
+    };
+    document.documentElement.lang=english?'en':'es';document.title=english?'Dux game':'Partida Dux';
+    document.querySelectorAll('[data-i18n]').forEach(element=>element.textContent=T[element.dataset.i18n]);
+    document.querySelectorAll('[data-i18n-aria]').forEach(element=>element.setAttribute('aria-label',T[element.dataset.i18nAria]));
     function showLoadError(message,output=''){
       status.textContent=message;status.style.color='var(--pink)';diagnostics.style.display='block';
       const useful=output.split('\n').filter(line=>/error|couldn.t|not found|failed|missing|spawn/i.test(line)).slice(-14);
       engineLog.textContent=useful.join('\n')||output.split('\n').slice(-14).join('\n')||'El motor no informó del error.';
     }
     function renderFullscreenButton(){
-      const active=document.fullscreenElement===game||game.classList.contains('expanded');fullscreen.querySelector('span').textContent=active?'Salir de pantalla completa':'Pantalla completa';
-      fullscreen.setAttribute('aria-label',active?'Salir de pantalla completa':'Jugar a pantalla completa');
+      const active=document.fullscreenElement===game||game.classList.contains('expanded');fullscreen.querySelector('span').textContent=active?T.exitFullscreen:T.fullscreen;
+      fullscreen.setAttribute('aria-label',active?T.exitFullscreen:T.fullscreen);
       fullscreen.querySelector('svg').innerHTML=active?'<path d="M8 3v5H3M16 3v5h5M3 16h5v5M21 16h-5v5"/>':'<path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/>';
     }
     function exitFallbackFullscreen(){game.classList.remove('expanded');renderFullscreenButton()}
@@ -62,26 +71,26 @@
     document.addEventListener('fullscreenchange',renderFullscreenButton);
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&game.classList.contains('expanded'))exitFallbackFullscreen()});
     Promise.all([fetch(`/v1/games/${id}`),fetch('/v1/health')]).then(async([mr,hr])=>{
-      if(!mr.ok)throw new Error('Esta partida ya no está disponible.');
-      const manifest=await mr.json(),health=hr.ok?await hr.json():{};expiry.textContent=`Disponible hasta el ${new Date(manifest.expiresAt*1000).toLocaleDateString('es-ES')}.`;
+      if(!mr.ok)throw new Error(T.unavailable);
+      const manifest=await mr.json(),health=hr.ok?await hr.json():{};expiry.textContent=`${T.availableUntil} ${new Date(manifest.expiresAt*1000).toLocaleDateString(english?'en-US':'es-ES')}.`;
       if(health.engineReady&&manifest.map==='maps/start.bsp'){
-        preview.hidden=true;game.style.display='block';controls.style.display='flex';status.textContent='Cargando la partida…';hint.textContent='Usa WASD para moverte, el ratón para mirar y el botón para ampliar el juego.';
+        preview.hidden=true;game.style.display='block';controls.style.display='flex';status.textContent=T.loadingGame;hint.textContent=T.playHint;
         engine.addEventListener('load',()=>{
           const started=Date.now(),poll=setInterval(()=>{
             try{
               const output=engine.contentDocument.querySelector('#output')?.value||'';
               const failure=output.match(/(couldn.t open [^\n]*\.bsp|couldn.t spawn server[^\n]*|Host_Error:[^\n]*|Error:.*(?:map|model|file)[^\n]*)/i);
-              if(failure){clearInterval(poll);showLoadError('No se pudo iniciar el nivel. Recarga la página para intentarlo de nuevo.',output);return;}
+              if(failure){clearInterval(poll);showLoadError(T.levelFailed,output);return;}
               if(output.includes('Server spawned.')){clearInterval(poll);gameNote.hidden=true;return;}
-              if(Date.now()-started>90000){clearInterval(poll);showLoadError('El nivel está tardando demasiado en responder.',output);}
-            }catch(error){if(Date.now()-started>90000){clearInterval(poll);showLoadError('No se pudo comprobar el estado del juego.');}}
+              if(Date.now()-started>90000){clearInterval(poll);showLoadError(T.tooSlow,output);}
+            }catch(error){if(Date.now()-started>90000){clearInterval(poll);showLoadError(T.checkFailed);}}
           },500);
         },{once:true});
         engine.src=`/engine/index.html?+developer&1&+map&start#game=${encodeURIComponent(id)}`;return;
       }
-      const tr=await fetch(`/v1/games/${id}/texture`);if(!tr.ok)throw new Error('No se pudo cargar esta partida.');
+      const tr=await fetch(`/v1/games/${id}/texture`);if(!tr.ok)throw new Error(T.textureFailed);
       const bytes=new Uint8Array(await tr.arrayBuffer()),image=new ImageData(new Uint8ClampedArray(bytes),manifest.width,manifest.height);canvas.width=manifest.width;canvas.height=manifest.height;ctx.putImageData(image,0,0);
-      status.textContent='Tu diseño está listo para compartir.';hint.textContent=health.engineReady?'Esta partida está disponible como vista previa.':'El modo jugable no está disponible en este servidor todavía.';
+      status.textContent=T.designReady;hint.textContent=health.engineReady?T.previewReady:T.engineUnavailable;
     }).catch(error=>{status.textContent=error.message;status.style.color='var(--pink)';expiry.textContent='';});
   </script>
 </body>

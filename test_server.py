@@ -169,7 +169,18 @@ class PakTests(unittest.TestCase):
         resource = result["contents"][0]
         self.assertEqual(resource["mimeType"], "text/html;profile=mcp-app")
         self.assertIn("window.openai.selectFiles", resource["text"])
+        self.assertIn("window.openai?.locale", resource["text"])
+        self.assertIn("Choose image", resource["text"])
+        self.assertIn("Elegir imagen", resource["text"])
         self.assertIn("ui/initialize", resource["text"])
+
+    def test_shared_game_page_localizes_controls_and_statuses(self):
+        page = (server.ROOT / "play.html").read_text(encoding="utf-8")
+        self.assertIn("navigator.language", page)
+        self.assertIn("Full screen", page)
+        self.assertIn("Pantalla completa", page)
+        self.assertIn("Your image in the game", page)
+        self.assertIn("Tu imagen en el juego", page)
 
     def test_mcp_create_game_receives_only_final_rgba_and_returns_share_url(self):
         handler = object.__new__(server.Handler)

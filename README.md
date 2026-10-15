@@ -37,6 +37,8 @@ DUX_PUBLIC_URL=https://your-tunnel.example DUX_PORT=8000 python3 server.py
 
 Connect `https://your-tunnel.example/mcp` as a custom MCP server in ChatGPT. The `open_creator` tool opens the widget. It checks for ChatGPT's file-library picker and temporary-download APIs, and tries `uploadFile()` for a device-selected image when available; the ordinary browser file upload remains the fallback. The widget prepares the final texture locally and calls `create_game` through the MCP Apps bridge. Dux does not call an image-generation API or consume ChatGPT plan tokens.
 
+The creator widget follows ChatGPT's locale when available; the share page follows the browser language. Both currently support English and Spanish.
+
 To prepare a public plugin package after deploying Dux to a **stable public HTTPS domain**:
 
 ```sh

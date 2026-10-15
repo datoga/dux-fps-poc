@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dux — crea tu partida</title>
+  <title>Dux</title>
   <style>
     :root{color-scheme:dark;--bg:#09151c;--panel:#132832;--line:#2b4854;--mint:#93e6ce;--text:#eef7f8;--muted:#afc2c8;--pink:#ff8faa}
     *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 85% -15%,#24404a 0,transparent 42%),var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,sans-serif}
@@ -14,25 +14,25 @@
 </head>
 <body><main>
   <div class="eyebrow">Dux</div>
-  <h1>Tu imagen,<br>en el juego.</h1>
-  <p class="lead">Elige una imagen, crea tu partida y comparte el enlace con quien quieras.</p>
+  <h1 id="headline"></h1>
+  <p class="lead" data-i18n="lead"></p>
   <section class="panel" aria-labelledby="step-title">
     <div class="row">
-      <canvas class="preview" id="preview" width="128" height="128" aria-label="Vista previa de la textura"></canvas>
-      <div class="steps"><span class="tag">Tu partida</span><h2 id="step-title">Elige una imagen</h2>
-        <p class="hint">La adaptaremos al estilo del juego automáticamente.</p>
+      <canvas class="preview" id="preview" width="128" height="128"></canvas>
+      <div class="steps"><span class="tag" data-i18n="yourGame"></span><h2 id="step-title" data-i18n="chooseTitle"></h2>
+        <p class="hint" data-i18n="styleHint"></p>
       </div>
     </div>
     <div class="controls">
-      <button id="chooseImage" type="button">Elegir imagen</button>
-      <label class="button secondary" for="file">Subir desde dispositivo</label>
+      <button id="chooseImage" type="button" data-i18n="chooseImage"></button>
+      <label class="button secondary" for="file" data-i18n="uploadDevice"></label>
       <input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
-      <button class="secondary" id="publish" type="button" disabled>Crear partida</button>
+      <button class="secondary" id="publish" type="button" disabled data-i18n="createGame"></button>
     </div>
-    <p class="hint">PNG, JPG o WebP, hasta 10 MB. La recortamos y adaptamos en tu navegador.</p>
-    <p class="status" id="status" role="status" aria-live="polite">Selecciona una imagen para empezar.</p>
+    <p class="hint" data-i18n="fileHint"></p>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
     <div class="share" id="share"></div>
-    <p class="fine">Dux recibe solo la textura final adaptada; no recibe la foto original.</p>
+    <p class="fine" data-i18n="privacyHint"></p>
   </section>
 </main>
 <script>
@@ -40,6 +40,17 @@
   const fileInput=document.querySelector('#file'), canvas=document.querySelector('#preview'), ctx=canvas.getContext('2d',{willReadFrequently:true});
   const publish=document.querySelector('#publish'), status=document.querySelector('#status'), share=document.querySelector('#share'), chooseImage=document.querySelector('#chooseImage');
   const SIZE=128, API_BASE=(window.DUX_API_BASE||location.origin).replace(/\/$/, '');
+  const english=((window.openai?.locale||navigator.language||'es').toLowerCase().startsWith('en'));
+  const T=english?{
+    title:'Dux — create your game',hero:'Your image,<br>in the game.',lead:'Choose an image, create your game, and share the link with anyone.',yourGame:'Your game',chooseTitle:'Choose an image',styleHint:'We’ll adapt it to the game’s style.',chooseImage:'Choose image',uploadDevice:'Upload from device',createGame:'Create game',fileHint:'PNG, JPG or WebP, up to 10 MB. We crop and adapt it in your browser.',statusChoose:'Choose an image to get started.',privacyHint:'Dux receives only the adapted texture, never the original photo.',changeImage:'Change image',badType:'Choose a PNG, JPG, or WebP image.',tooLarge:'The image must be smaller than 10 MB.',tooManyPixels:'The image is too large. Try one under 24 megapixels.',previewReady:'Preview ready. You can create your game now.',readError:'Could not read that image.',preparingImage:'Preparing image…',downloadError:'Could not download the file from ChatGPT.',libraryError:'Could not use the ChatGPT library; trying the image from your device.',openImageError:'Could not open that image.',pickerError:'Could not open that ChatGPT image. Use “Upload from device” to continue.',creating:'Preparing texture and creating the game…',publishError:'Could not publish the game.',gameReady:'Your game is ready!',designReady:'Your design is ready to share!',play:'Play',viewDesign:'View design',copy:'Copy link',available:'Available for seven days.',copied:'Link copied. Share it with your friends!',copyFallback:'Select and copy the link above.',playableStatus:'Game ready to play and share.',previewStatus:'Design ready to share.',notPlayable:'This server does not have the playable game ready yet.'
+  }:{
+    title:'Dux — crea tu partida',hero:'Tu imagen,<br>en el juego.',lead:'Elige una imagen, crea tu partida y comparte el enlace con quien quieras.',yourGame:'Tu partida',chooseTitle:'Elige una imagen',styleHint:'La adaptaremos al estilo del juego automáticamente.',chooseImage:'Elegir imagen',uploadDevice:'Subir desde dispositivo',createGame:'Crear partida',fileHint:'PNG, JPG o WebP, hasta 10 MB. La recortamos y adaptamos en tu navegador.',statusChoose:'Selecciona una imagen para empezar.',privacyHint:'Dux recibe solo la textura final adaptada; no recibe la foto original.',changeImage:'Cambiar imagen',badType:'Elige una imagen PNG, JPG o WebP.',tooLarge:'La imagen debe pesar menos de 10 MB.',tooManyPixels:'La imagen es demasiado grande. Prueba con una de menos de 24 megapíxeles.',previewReady:'Vista previa lista. Ya puedes crear tu partida.',readError:'No se pudo leer esa imagen.',preparingImage:'Preparando la imagen…',downloadError:'No se pudo descargar el archivo desde ChatGPT.',libraryError:'No se pudo usar la biblioteca de ChatGPT; probaremos la imagen desde tu dispositivo.',openImageError:'No se pudo abrir esa imagen.',pickerError:'No se pudo abrir esa imagen de ChatGPT. Usa «Subir desde dispositivo» para continuar.',creating:'Preparando textura y creando la partida…',publishError:'No se pudo publicar la partida.',gameReady:'¡Tu partida está lista!',designReady:'¡Tu diseño está listo para compartir!',play:'Jugar',viewDesign:'Ver diseño',copy:'Copiar enlace',available:'Enlace disponible durante siete días.',copied:'Enlace copiado. ¡Compártelo con tus amigos!',copyFallback:'Selecciona y copia el enlace de arriba.',playableStatus:'Partida lista para jugar y compartir.',previewStatus:'Diseño listo para compartir.',notPlayable:'El juego todavía no está disponible en este servidor.'
+  };
+  document.documentElement.lang=english?'en':'es';document.title=T.title;
+  document.querySelector('#headline').innerHTML=T.hero;
+  document.querySelectorAll('[data-i18n]').forEach(element=>element.textContent=T[element.dataset.i18n]);
+  canvas.setAttribute('aria-label',english?'Texture preview':'Vista previa de la textura');
+  setStatus(T.statusChoose);
   let imageReady=false;
   function setStatus(message,error=false){status.textContent=message;status.classList.toggle('error',error)}
   let rpcId=0;const pending=new Map();
@@ -49,20 +60,20 @@
   const bridgeReady=(window.parent!==window&&!window.openai?.callTool)?rpcRequest('ui/initialize',{appInfo:{name:'dux-texture-creator',version:'0.1.0'},appCapabilities:{},protocolVersion:'2026-01-26'}).then(()=>rpcNotify('ui/notifications/initialized',{})).catch(()=>null):Promise.resolve();
   async function callCreateTool(args){if(window.openai?.callTool)return window.openai.callTool('create_game',args);await bridgeReady;return rpcRequest('tools/call',{name:'create_game',arguments:args})}
   function loadImage(file){
-    if(!file || !/^image\/(png|jpeg|webp)$/.test(file.type)){setStatus('Elige una imagen PNG, JPG o WebP.',true);return}
-    if(file.size>10*1024*1024){setStatus('La imagen debe pesar menos de 10 MB.',true);return}
+    if(!file || !/^image\/(png|jpeg|webp)$/.test(file.type)){setStatus(T.badType,true);return}
+    if(file.size>10*1024*1024){setStatus(T.tooLarge,true);return}
     const url=URL.createObjectURL(file),img=new Image();
-    img.onload=()=>{if(img.width*img.height>24000000){URL.revokeObjectURL(url);setStatus('La imagen es demasiado grande. Prueba con una de menos de 24 megapíxeles.',true);return}ctx.imageSmoothingEnabled=true;ctx.clearRect(0,0,SIZE,SIZE);ctx.fillStyle='#202a31';ctx.fillRect(0,0,SIZE,SIZE);const side=Math.min(img.width,img.height),sx=Math.floor((img.width-side)/2),sy=Math.floor((img.height-side)/2);ctx.drawImage(img,sx,sy,side,side,0,0,SIZE,SIZE);URL.revokeObjectURL(url);imageReady=true;publish.disabled=false;chooseImage.textContent='Cambiar imagen';chooseImage.classList.add('secondary');publish.classList.remove('secondary');share.style.display='none';setStatus('Vista previa lista. Ya puedes crear tu partida.')};
-    img.onerror=()=>{URL.revokeObjectURL(url);setStatus('No se pudo leer esa imagen.',true)};img.src=url;
+    img.onload=()=>{if(img.width*img.height>24000000){URL.revokeObjectURL(url);setStatus(T.tooManyPixels,true);return}ctx.imageSmoothingEnabled=true;ctx.clearRect(0,0,SIZE,SIZE);ctx.fillStyle='#202a31';ctx.fillRect(0,0,SIZE,SIZE);const side=Math.min(img.width,img.height),sx=Math.floor((img.width-side)/2),sy=Math.floor((img.height-side)/2);ctx.drawImage(img,sx,sy,side,side,0,0,SIZE,SIZE);URL.revokeObjectURL(url);imageReady=true;publish.disabled=false;chooseImage.textContent=T.changeImage;chooseImage.classList.add('secondary');publish.classList.remove('secondary');share.style.display='none';setStatus(T.previewReady)};
+    img.onerror=()=>{URL.revokeObjectURL(url);setStatus(T.readError,true)};img.src=url;
   }
   async function loadDeviceImage(file){
     if(!file)return;
     if(window.openai?.uploadFile&&window.openai?.getFileDownloadUrl){
       try{
-        setStatus('Preparando la imagen…');
+        setStatus(T.preparingImage);
         const uploaded=await window.openai.uploadFile(file,{library:false});
-        if(uploaded?.fileId){const {downloadUrl}=await window.openai.getFileDownloadUrl({fileId:uploaded.fileId});const response=await fetch(downloadUrl);if(!response.ok)throw new Error('No se pudo descargar el archivo desde ChatGPT.');const blob=await response.blob();loadImage(new File([blob],file.name,{type:file.type||blob.type}));return}
-      }catch(error){setStatus('No se pudo usar la biblioteca de ChatGPT; probaremos la imagen desde tu dispositivo.',true)}
+        if(uploaded?.fileId){const {downloadUrl}=await window.openai.getFileDownloadUrl({fileId:uploaded.fileId});const response=await fetch(downloadUrl);if(!response.ok)throw new Error(T.downloadError);const blob=await response.blob();loadImage(new File([blob],file.name,{type:file.type||blob.type}));return}
+      }catch(error){setStatus(T.libraryError,true)}
     }
     loadImage(file);
   }
@@ -70,17 +81,17 @@
   chooseImage.addEventListener('click',async()=>{
     if(window.openai?.selectFiles){
       try{const files=await window.openai.selectFiles();if(files?.length){const {downloadUrl}=await window.openai.getFileDownloadUrl({fileId:files[0].fileId});const response=await fetch(downloadUrl);if(!response.ok)throw new Error('No se pudo abrir esa imagen.');const blob=await response.blob();loadImage(new File([blob],files[0].fileName||'imagen.png',{type:files[0].mimeType||blob.type||'image/png'}));return}}
-      catch(e){setStatus('No se pudo abrir esa imagen de ChatGPT. Usa «Subir desde dispositivo» para continuar.',true);return}
+      catch(e){setStatus(T.pickerError,true);return}
     }
     fileInput.click();
   });
   publish.addEventListener('click',async()=>{
-    if(!imageReady)return;publish.disabled=true;setStatus('Preparando textura y creando el PAK…');
+    if(!imageReady)return;publish.disabled=true;setStatus(T.creating);
     try{const image=ctx.getImageData(0,0,SIZE,SIZE),bytes=new Uint8Array(image.data.buffer);let binary='';for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));const args={width:SIZE,height:SIZE,rgba:btoa(binary)};let result;
-      if(window.openai?.callTool||(window.parent!==window&&await bridgeReady)){const toolResult=await callCreateTool(args);if(toolResult?.isError)throw new Error(toolResult.content?.[0]?.text||'No se pudo publicar la partida.');result=toolResult?.structuredContent||toolResult?.content?.find?.(item=>item.type==='text')?.text;if(typeof result==='string')throw new Error(result);}
-      else{const response=await fetch(`${API_BASE}/v1/games`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)});result=await response.json();if(!response.ok)throw new Error(result.message||result.error||'No se pudo publicar la partida.');}
-      const url=new URL(result.shareUrl,API_BASE).href,playable=result.playable===true;share.innerHTML=`<strong>${playable?'¡Tu partida está lista!':'¡Tu diseño está listo para compartir!'}</strong><p><a href="${url}">${url}</a></p><p><a class="button" href="${url}" target="_blank" rel="noopener">${playable?'Jugar':'Ver diseño'}</a> <button class="secondary" id="copyLink" type="button">Copiar enlace</button></p><small>Enlace disponible durante siete días.</small>`;share.style.display='block';share.querySelector('#copyLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);setStatus('Enlace copiado. ¡Compártelo con tus amigos!')}catch(e){setStatus('Selecciona y copia el enlace de arriba.')}});setStatus(playable?'Partida lista para jugar y compartir.':'Diseño listo para compartir. El juego no está disponible en este servidor todavía.');
-    }catch(e){setStatus(e.message||'Error al crear la partida.',true)}finally{publish.disabled=false}
+      if(window.openai?.callTool||(window.parent!==window&&await bridgeReady)){const toolResult=await callCreateTool(args);if(toolResult?.isError)throw new Error(toolResult.content?.[0]?.text||T.publishError);result=toolResult?.structuredContent||toolResult?.content?.find?.(item=>item.type==='text')?.text;if(typeof result==='string')throw new Error(result);}
+      else{const response=await fetch(`${API_BASE}/v1/games`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)});result=await response.json();if(!response.ok)throw new Error(result.message||result.error||T.publishError);}
+      const url=new URL(result.shareUrl,API_BASE).href,playable=result.playable===true;share.innerHTML=`<strong>${playable?T.gameReady:T.designReady}</strong><p><a href="${url}">${url}</a></p><p><a class="button" href="${url}" target="_blank" rel="noopener">${playable?T.play:T.viewDesign}</a> <button class="secondary" id="copyLink" type="button">${T.copy}</button></p><small>${T.available}</small>`;share.style.display='block';share.querySelector('#copyLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);setStatus(T.copied)}catch(e){setStatus(T.copyFallback)}});setStatus(playable?T.playableStatus:T.notPlayable);
+    }catch(e){setStatus(e.message||T.publishError,true)}finally{publish.disabled=false}
   });
 })();
 </script></body></html>
