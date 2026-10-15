@@ -1,0 +1,8 @@
+.git
+.github
+__pycache__
+*.py[cod]
+.venv
+data/games/*
+!data/games/.gitkeep
+dux-test.pak

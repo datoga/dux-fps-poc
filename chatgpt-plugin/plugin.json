@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dux-retro-game",
+  "version": "0.1.0",
+  "description": "Crea una partida retro de LibreQuake con una textura hecha a partir de tu imagen y compártela con un enlace jugable.",
+  "author": {
+    "name": "Dux"
+  },
+  "homepage": "https://github.com/datoga/dux-fps-poc",
+  "repository": "https://github.com/datoga/dux-fps-poc",
+  "license": "MIT",
+  "keywords": ["ChatGPT", "game", "LibreQuake", "image", "MCP"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Dux",
+        "shortDescription": "Personaliza y comparte una partida retro.",
+        "longDescription": "Elige una imagen, revisa cómo queda como textura pixelada y crea un enlace a una partida de LibreQuake en el navegador. Dux recibe solo la textura final y elimina las partidas gratuitas después de siete días.",
+        "developerName": "Dux",
+        "websiteURL": "https://github.com/datoga/dux-fps-poc",
+        "privacyPolicyURL": "https://github.com/datoga/dux-fps-poc/blob/main/PRIVACY.md",
+        "termsOfServiceURL": "https://github.com/datoga/dux-fps-poc/blob/main/TERMS.md",
+        "defaultPrompt": [
+          "Ayúdame a crear una partida retro con esta imagen y dame el enlace para jugar.",
+          "Quiero convertir una imagen en una textura pixelada para una partida de LibreQuake."
+        ],
+        "brandColor": "#93e6ce",
+        "logo": "./assets/dux-logo.png"
+      }
+    }
+  }
+}
