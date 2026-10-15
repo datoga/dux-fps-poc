@@ -53,7 +53,7 @@ For OpenAI domain verification, set `DUX_OPENAI_APPS_CHALLENGE` to the exact tok
 
 ## Docker deployment
 
-The included Docker image builds Qwasm and the shared LibreQuake runtime, extracts only the palette used to convert each image, then runs the standard-library web/API server. Maps remain in the shared runtime, while each game stores only its indexed 128 × 128 texture (about 16 KB) in its own PAK. Build context needs the two `librequake-assets/*.pak` files described above; the full source PAKs are not copied into the final image. Persistent storage is configured through the `dux-games` Docker volume.
+The included Docker image builds Qwasm and the shared LibreQuake runtime, extracts only the palette used to convert each image, then runs the standard-library web/API server. The final image keeps the compressed runtime data and serves it with HTTP gzip, avoiding a second 140 MB uncompressed copy. Maps remain in the shared runtime, while each game stores only its indexed 128 × 128 texture (about 16 KB) in its own PAK. Build context needs the two `librequake-assets/*.pak` files described above; the full source PAKs are not copied into the final image. Persistent storage is configured through the `dux-games` Docker volume.
 
 ```sh
 DUX_PUBLIC_URL=https://play.example.com docker compose up --build

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import gzip
 import json
 import mimetypes
 import os
@@ -53,11 +54,12 @@ TEXTURE_WIDTH = 128
 TEXTURE_HEIGHT = 128
 MAX_PIXELS = TEXTURE_WIDTH * TEXTURE_HEIGHT
 FREE_TTL_SECONDS = 7 * 24 * 60 * 60
-ENGINE_FILES = ("index.html", "index.js", "index.wasm", "index.data", "index.data.gz")
+ENGINE_FILES = ("index.html", "index.js", "index.wasm")
 
 
 def engine_ready() -> bool:
-    return all((ENGINE / name).is_file() for name in ENGINE_FILES)
+    return (all((ENGINE / name).is_file() for name in ENGINE_FILES)
+            and any((ENGINE / name).is_file() for name in ("index.data", "index.data.gz")))
 
 
 def game_assets_ready() -> bool:
@@ -604,6 +606,8 @@ class Handler(BaseHTTPRequestHandler):
             compressed = ENGINE / "index.data.gz"
             if engine_file.name == "index.data" and "gzip" in self.headers.get("Accept-Encoding", "") and compressed.is_file():
                 self._file(compressed, "application/octet-stream", content_encoding="gzip")
+            elif engine_file.name == "index.data" and not engine_file.is_file() and compressed.is_file():
+                self._gzip_file(compressed, "application/octet-stream")
             else:
                 self._file(engine_file)
             return
@@ -636,6 +640,24 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "public, max-age=86400")
         self.end_headers()
         self.wfile.write(data)
+
+    def _gzip_file(self, path: Path, content_type: str) -> None:
+        """Stream a compressed runtime asset decoded for clients without gzip support."""
+        if not path.is_file() or path.stat().st_size < 4:
+            self._json(404, {"error": "file_not_found"})
+            return
+        with path.open("rb") as source:
+            source.seek(-4, os.SEEK_END)
+            content_length, = struct.unpack("<I", source.read(4))
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(content_length))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self.end_headers()
+        with gzip.open(path, "rb") as source:
+            while chunk := source.read(1024 * 1024):
+                self.wfile.write(chunk)
 
     def log_message(self, fmt: str, *args) -> None:
         print(f"{self.address_string()} - {fmt % args}")

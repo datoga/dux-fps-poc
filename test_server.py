@@ -1,5 +1,6 @@
 import base64
 from email.message import Message
+import gzip
 from io import BytesIO
 import json
 import struct
@@ -246,6 +247,27 @@ class MCPHttpTests(unittest.TestCase):
         handler.do_GET()
         self.assertEqual(handler.response_status, 405)
         self.assertIn("POST", handler.response_headers["Allow"])
+
+    def test_compressed_only_engine_runtime_serves_gzip_and_raw_clients(self):
+        with tempfile.TemporaryDirectory() as temp:
+            engine = Path(temp)
+            for filename in ("index.html", "index.js", "index.wasm"):
+                (engine / filename).write_bytes(b"runtime")
+            runtime_data = b"shared Quake game assets"
+            (engine / "index.data.gz").write_bytes(gzip.compress(runtime_data))
+            with patch.object(server, "ENGINE", engine):
+                self.assertTrue(server.engine_ready())
+                compressed_client = self.handler("/engine/index.data")
+                compressed_client.headers["Accept-Encoding"] = "gzip"
+                compressed_client.do_GET()
+                self.assertEqual(compressed_client.response_status, 200)
+                self.assertEqual(compressed_client.response_headers["Content-Encoding"], "gzip")
+                self.assertEqual(gzip.decompress(compressed_client.wfile.getvalue()), runtime_data)
+
+                plain_client = self.handler("/engine/index.data")
+                plain_client.do_GET()
+                self.assertEqual(plain_client.response_status, 200)
+                self.assertEqual(plain_client.wfile.getvalue(), runtime_data)
 
     def test_expired_game_api_returns_gone(self):
         with tempfile.TemporaryDirectory() as temp, patch.object(server, "DATA", Path(temp)):
