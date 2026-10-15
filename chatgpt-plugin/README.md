@@ -10,6 +10,8 @@ DUX_DEMO_RECORDING_URL=https://tu-dominio.example/dux-demo.mp4 \
 python3 tools/package_chatgpt_plugin.py
 ```
 
+Esto genera un borrador. Después de desplegar el servicio, revisar las políticas y publicar un vídeo de demostración accesible, añade `--verify-live` para comprobar que la web, el runtime, MCP, el widget y el vídeo responden antes de crear un ZIP candidato a envío. Si configuraste `DUX_OPENAI_APPS_CHALLENGE`, también se comprueba el token de verificación del dominio.
+
 El ZIP aparecerá en `dist/dux-chatgpt-plugin.zip`. Sin el vídeo, el paquete se marca como borrador. Antes de enviarlo, reemplaza las políticas en borrador por políticas revisadas con los datos reales del operador. Después, completa en OpenAI la verificación de identidad y dominio, conecta y escanea el endpoint MCP, y envía el paquete a revisión. El directorio público requiere aprobación; un túnel local sirve para probar una conexión personalizada, pero no para publicar.
 
 La configuración de conexión se crea dentro del ZIP como `mcp.json` con el endpoint `/mcp`. El paquete incluye también `skills/dux-create/SKILL.md`, que guía a ChatGPT por el flujo de selección, confirmación y publicación de la partida. La ficha base está en inglés y añade una traducción `es-ES`; el manifiesto incluye los casos de prueba de revisión inicial y apunta las políticas al dominio desplegado. Revisa el resultado del escaneo y completa los campos de publisher en el portal.

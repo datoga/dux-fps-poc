@@ -45,7 +45,9 @@ DUX_DEMO_RECORDING_URL=https://example.com/dux-demo.mp4 \
 python3 tools/package_chatgpt_plugin.py
 ```
 
-This creates `dist/dux-chatgpt-plugin.zip` with the portable manifest, remote Streamable HTTP endpoint, public listing URLs, and five positive plus three negative review cases. Without `DUX_DEMO_RECORDING_URL`, the script creates a **draft only** and prints a warning; public MCP review requires a reviewer-accessible walkthrough video. The package points its website, privacy, and terms URLs at the deployed Dux origin and its support URL at the repository's issue tracker.
+This creates `dist/dux-chatgpt-plugin.zip` with the portable manifest, remote Streamable HTTP endpoint, public listing URLs, and five positive plus three negative review cases. The package builder labels output **draft only** until `--verify-live` passes. That preflight checks the deployed health state, browser runtime, web and policy pages, MCP initialization/tools/widget, and reviewer video URL; it rejects reserved example domains and policy placeholders. If `DUX_OPENAI_APPS_CHALLENGE` is set, it also checks the live domain-verification response. The package points its website, privacy, and terms URLs at the deployed Dux origin and its support URL at the repository's issue tracker.
+
+After deployment and policy review, use the same command with `--verify-live` to prepare a submission candidate. The checks require a public HTTPS domain and a reviewer-accessible recording; they cannot replace publisher identity verification or OpenAI's review.
 
 Before submission, replace the draft policy pages with reviewed production policies and real operator/contact details. Then upload the ZIP through the [OpenAI plugin submission portal](https://platform.openai.com/plugins), verify the publisher identity, complete domain verification, connect and scan the live MCP endpoint, and submit for review. Public release happens only after OpenAI approves the submission. A local address or temporary tunnel is for testing only.
 

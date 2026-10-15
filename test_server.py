@@ -12,7 +12,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 from zipfile import ZipFile
-from tools.package_chatgpt_plugin import build_plugin_manifest, build_plugin_package, normalize_mcp_url
+from tools.package_chatgpt_plugin import build_plugin_manifest, build_plugin_package, normalize_mcp_url, verify_live_deployment
 
 import server
 from engine.build_runtime import curated_game_assets, curated_pak, texture_override_header
@@ -328,6 +328,46 @@ class PluginPackageTests(unittest.TestCase):
     def test_plugin_manifest_rejects_non_https_demo_recording(self):
         with self.assertRaisesRegex(ValueError, "public HTTPS"):
             build_plugin_manifest("https://play.example", "http://video.example/dux-demo")
+
+    def test_live_release_check_verifies_deployment_before_packaging(self):
+        class FakeResponse:
+            def __init__(self, body, status=200):
+                self.body, self.status = body, status
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def read(self, limit=-1): return self.body if limit < 0 else self.body[:limit]
+
+        def fake_urlopen(request, timeout):
+            url = request.full_url if hasattr(request, "full_url") else request
+            if url.endswith("/v1/health"):
+                body = json.dumps({"ok": True, "assetsReady": True, "engineReady": True}).encode()
+            elif url.endswith("/mcp"):
+                method = json.loads(request.data)["method"]
+                result = (
+                    {"serverInfo": {"name": "dux-game-mcp"}}
+                    if method == "initialize" else
+                    {"tools": [{"name": name} for name in ("open_creator", "create_game", "get_game")]}
+                    if method == "tools/list" else
+                    {"contents": [{"uri": "ui://widget/dux-create.html", "text": "window.openai.selectFiles Crear partida"}]}
+                )
+                body = json.dumps({"jsonrpc": "2.0", "id": 1, "result": result}).encode()
+            elif url.endswith("/privacy") or url.endswith("/terms"):
+                body = b"Production policy and operator contact details."
+            elif url.endswith("/dux-demo.mp4"):
+                body = b"x"
+                return FakeResponse(body, 206)
+            else:
+                body = b"ok"
+            return FakeResponse(body)
+
+        with patch("tools.package_chatgpt_plugin.urlopen", side_effect=fake_urlopen):
+            verify_live_deployment("https://dux.com", "https://media.com/dux-demo.mp4")
+
+    def test_live_release_check_rejects_example_domains_and_missing_demo(self):
+        with self.assertRaisesRegex(ValueError, "reserved example"):
+            verify_live_deployment("https://play.example.com", "https://media.com/dux-demo.mp4")
+        with self.assertRaisesRegex(ValueError, "requires a reviewer-accessible demo"):
+            verify_live_deployment("https://dux.com", None)
 
     def test_plugin_zip_bundles_skill_mcp_and_public_metadata(self):
         with tempfile.TemporaryDirectory() as temp:
