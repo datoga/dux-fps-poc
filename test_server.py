@@ -216,6 +216,32 @@ class MCPHttpTests(unittest.TestCase):
         self.assertEqual(handler.response_status, 405)
         self.assertIn("POST", handler.response_headers["Allow"])
 
+    def test_expired_game_api_returns_gone(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(server, "DATA", Path(temp)):
+            game_dir = Path(temp) / "a1b2c3d4e5f6"
+            game_dir.mkdir()
+            (game_dir / "manifest.json").write_text(json.dumps({"expiresAt": 100}))
+            handler = self.handler("/v1/games/a1b2c3d4e5f6")
+            with patch.object(server.time, "time", return_value=100):
+                handler.do_GET()
+        self.assertEqual(handler.response_status, 410)
+        self.assertEqual(json.loads(handler.wfile.getvalue()), {"error": "game_expired"})
+
+    def test_cleanup_deletes_expired_game_only(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(server, "DATA", Path(temp)):
+            expired = Path(temp) / "expired"
+            active = Path(temp) / "active"
+            staging = Path(temp) / ".unfinished.tmp"
+            for path, expires in ((expired, 199), (active, 201)):
+                path.mkdir()
+                (path / "manifest.json").write_text(json.dumps({"expiresAt": expires}))
+                (path / "pak2.pak").write_bytes(b"test")
+            staging.mkdir()
+            self.assertEqual(server.cleanup_expired_games_once(now=200), 1)
+            self.assertFalse(expired.exists())
+            self.assertTrue(active.exists())
+            self.assertTrue(staging.exists())
+
     def test_domain_challenge_is_served_only_when_configured(self):
         with patch.dict("os.environ", {"DUX_OPENAI_APPS_CHALLENGE": "verify-this-domain"}):
             handler = self.handler("/.well-known/openai-apps-challenge")

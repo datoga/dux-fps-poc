@@ -636,21 +636,36 @@ class Handler(BaseHTTPRequestHandler):
         print(f"{self.address_string()} - {fmt % args}")
 
 
+def cleanup_expired_games_once(now: int | None = None) -> int:
+    """Remove expired game files and return how many game directories were deleted."""
+    current_time = int(time.time()) if now is None else now
+    removed = 0
+    if not DATA.is_dir():
+        return removed
+    for game_dir in DATA.iterdir():
+        if not game_dir.is_dir() or game_dir.name.startswith("."):
+            continue
+        manifest_path = game_dir / "manifest.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if int(manifest.get("expiresAt", 0)) > current_time:
+                continue
+            children = list(game_dir.iterdir())
+            if any(not child.is_file() and not child.is_symlink() for child in children):
+                continue
+            for child in children:
+                child.unlink()
+            game_dir.rmdir()
+            removed += 1
+        except (OSError, ValueError, TypeError):
+            continue
+    return removed
+
+
 def cleanup_expired_games() -> None:
-    """Delete expired free POCs periodically; API checks still deny access immediately."""
+    """Delete expired free games periodically; API checks deny access immediately."""
     while True:
-        now = int(time.time())
-        if DATA.is_dir():
-            for game_dir in DATA.iterdir():
-                manifest_path = game_dir / "manifest.json"
-                try:
-                    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-                    if int(manifest.get("expiresAt", 0)) < now:
-                        for child in game_dir.iterdir():
-                            child.unlink()
-                        game_dir.rmdir()
-                except (OSError, ValueError, TypeError):
-                    continue
+        cleanup_expired_games_once()
         time.sleep(60)
 
 
