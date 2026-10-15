@@ -33,6 +33,13 @@ def curated_pak(source: Path) -> bytes:
     return server.make_pak(entries)
 
 
+def curated_game_assets(source: Path) -> dict[str, bytes]:
+    """Keep only source BSPs that Dux modifies and the palette used for conversion."""
+    entries = server.pak_entries(source.read_bytes())
+    names = (server.TARGET_MAP, *server.CAMPAIGN_TEXTURES_BY_MAP, "gfx/palette.lmp")
+    return {name: entries[name] for name in names}
+
+
 def main() -> None:
     if not shutil.which("emcc"):
         raise SystemExit("Emscripten is required. Activate emsdk so `emcc` is on PATH.")
@@ -81,6 +88,14 @@ def main() -> None:
             with gzip.GzipFile(fileobj=compressed, mode="wb", compresslevel=6, mtime=0) as gzip_file:
                 shutil.copyfileobj(source_data, gzip_file)
         print(f"index.data.gz: {(OUTPUT / 'index.data.gz').stat().st_size:,} bytes")
+
+        game_assets = OUTPUT / "game-assets"
+        shutil.rmtree(game_assets, ignore_errors=True)
+        for name, content in curated_game_assets(server.PAK0).items():
+            destination = game_assets / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(content)
+        print(f"game-assets: {sum(path.stat().st_size for path in game_assets.rglob('*') if path.is_file()):,} bytes")
 
 
 if __name__ == "__main__":

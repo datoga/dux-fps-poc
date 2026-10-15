@@ -13,7 +13,7 @@ from unittest.mock import patch
 from tools.package_chatgpt_plugin import build_plugin_manifest, normalize_mcp_url
 
 import server
-from engine.build_runtime import curated_pak
+from engine.build_runtime import curated_game_assets, curated_pak
 
 
 def make_test_bsp(textures: tuple[tuple[str, int], ...]) -> bytes:
@@ -78,6 +78,15 @@ class PakTests(unittest.TestCase):
                 "maps/lq_e1m1.bsp": b"episode",
             }))
 
+    def test_runtime_source_assets_include_only_customized_maps_and_palette(self):
+        with fixture_paks() as (pak0, _, _):
+            assets = curated_game_assets(pak0)
+        self.assertEqual(set(assets), {
+            server.TARGET_MAP,
+            *server.CAMPAIGN_TEXTURES_BY_MAP,
+            "gfx/palette.lmp",
+        })
+
     def test_replacement_map_has_valid_lumps_and_custom_texture(self):
         with fixture_paks() as (pak0, _, bsp), patch.object(server, "PAK0", pak0):
             palette = server.extract_entry(pak0, "gfx/palette.lmp")
@@ -99,7 +108,8 @@ class PakTests(unittest.TestCase):
     def test_create_game_writes_customized_maps_and_preview(self):
         with fixture_paks() as (pak0, pak1, _), tempfile.TemporaryDirectory() as temp, \
                 patch.object(server, "PAK0", pak0), patch.object(server, "PAK1", pak1), \
-                patch.object(server, "DATA", Path(temp)):
+                patch.object(server, "DATA", Path(temp)), \
+                patch.object(server, "GAME_ASSETS", Path(temp) / "not-bundled"):
             width, height = server.TEXTURE_WIDTH, server.TEXTURE_HEIGHT
             rgba = bytes([20, 180, 220, 255]) * (width * height)
             game_id, expires = server.make_game(rgba, width, height)
@@ -118,6 +128,26 @@ class PakTests(unittest.TestCase):
                     info = server.texture_info(campaign, name)
                     self.assertEqual((info[3], info[4][0]), (16, 16))
             self.assertEqual((game_dir / "texture.rgba").read_bytes(), rgba)
+
+    def test_create_game_works_from_bundled_maps_without_source_paks(self):
+        with fixture_paks() as (pak0, _, _), tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            assets = root / "game-assets"
+            for name, content in curated_game_assets(pak0).items():
+                destination = assets / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(content)
+            data = root / "games"
+            missing_pak0, missing_pak1 = root / "missing-pak0", root / "missing-pak1"
+            rgba = bytes([80, 120, 160, 255]) * (server.TEXTURE_WIDTH * server.TEXTURE_HEIGHT)
+            with patch.object(server, "PAK0", missing_pak0), \
+                    patch.object(server, "PAK1", missing_pak1), \
+                    patch.object(server, "GAME_ASSETS", assets), \
+                    patch.object(server, "DATA", data):
+                self.assertTrue(server.game_assets_ready())
+                game_id, _ = server.make_game(rgba, server.TEXTURE_WIDTH, server.TEXTURE_HEIGHT)
+            package = server.pak_entries((data / game_id / "pak2.pak").read_bytes())
+            self.assertEqual(set(package), {server.TARGET_MAP, *server.CAMPAIGN_TEXTURES_BY_MAP})
 
     def test_mcp_exposes_creator_and_tool_schema(self):
         handler = object.__new__(server.Handler)

@@ -19,6 +19,7 @@ DATA = Path(os.environ.get("DUX_DATA_DIR", str(ROOT / "data" / "games"))).expand
 PAK0 = ROOT / "librequake-assets" / "pak0.pak"
 PAK1 = ROOT / "librequake-assets" / "pak1.pak"
 ENGINE = ROOT / "qwasm-runtime"
+GAME_ASSETS = ENGINE / "game-assets"
 # The dev test map has no player spawn and crashes in the hosted Qwasm build.
 # LibreQuake's compact start map has a valid spawn point and loads reliably in browser.
 TARGET_MAP = "maps/start.bsp"
@@ -57,6 +58,20 @@ ENGINE_FILES = ("index.html", "index.js", "index.wasm", "index.data", "index.dat
 
 def engine_ready() -> bool:
     return all((ENGINE / name).is_file() for name in ENGINE_FILES)
+
+
+def game_assets_ready() -> bool:
+    maps = (TARGET_MAP, *CAMPAIGN_TEXTURES_BY_MAP)
+    bundled_assets = all((GAME_ASSETS / name).is_file() for name in maps)
+    bundled_palette = (GAME_ASSETS / "gfx/palette.lmp").is_file()
+    return (bundled_assets and bundled_palette) or (PAK0.is_file() and PAK1.is_file())
+
+
+def load_game_asset(name: str) -> bytes:
+    bundled = GAME_ASSETS / name
+    if bundled.is_file():
+        return bundled.read_bytes()
+    return extract_entry(PAK0, name)
 
 
 def pak_entries(data: bytes) -> dict[str, bytes]:
@@ -266,14 +281,14 @@ def build_miptex(bsp: bytes, texture_name: str, rgba: bytes, width: int, height:
 def make_game(texture_rgba: bytes, width: int, height: int) -> tuple[str, int]:
     if (width, height) != (TEXTURE_WIDTH, TEXTURE_HEIGHT):
         raise ValueError(f"Texture must be exactly {TEXTURE_WIDTH}x{TEXTURE_HEIGHT}")
-    if not PAK0.is_file() or not PAK1.is_file():
-        raise RuntimeError("LibreQuake PAK files are missing")
-    bsp = extract_entry(PAK0, TARGET_MAP)
-    palette = extract_entry(PAK0, "gfx/palette.lmp")
+    if not game_assets_ready():
+        raise RuntimeError("LibreQuake game assets are missing")
+    bsp = load_game_asset(TARGET_MAP)
+    palette = load_game_asset("gfx/palette.lmp")
     custom_bsp = build_miptex(bsp, TARGET_TEXTURE, texture_rgba, width, height, palette)
     customized_maps = {TARGET_MAP: custom_bsp}
     for map_name, texture_names in CAMPAIGN_TEXTURES_BY_MAP.items():
-        campaign_bsp = extract_entry(PAK0, map_name)
+        campaign_bsp = load_game_asset(map_name)
         for texture_name in texture_names:
             campaign_bsp = build_miptex(campaign_bsp, texture_name, texture_rgba, width, height, palette)
         customized_maps[map_name] = campaign_bsp
@@ -551,7 +566,7 @@ class Handler(BaseHTTPRequestHandler):
         if request_path == "/v1/health":
             self._json(200, {
                 "ok": True,
-                "assetsReady": PAK0.is_file() and PAK1.is_file(),
+                "assetsReady": game_assets_ready(),
                 "engineReady": engine_ready(),
             })
             return
