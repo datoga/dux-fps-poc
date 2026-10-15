@@ -46,16 +46,10 @@ def build_plugin_manifest(server_url: str, demo_recording_url: str | None = None
     return plugin
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--server-url", default=os.environ.get("DUX_PUBLIC_URL"), help="Public HTTPS origin (or its /mcp endpoint)")
-    parser.add_argument("--demo-recording-url", default=os.environ.get("DUX_DEMO_RECORDING_URL"), help="Reviewer-accessible HTTPS walkthrough video; required before submitting for public review")
-    parser.add_argument("--output", type=Path, default=OUTPUT, help="ZIP output path")
-    args = parser.parse_args()
-    if not args.server_url:
-        parser.error("Set DUX_PUBLIC_URL or pass --server-url after deploying the server")
-    mcp_url = normalize_mcp_url(args.server_url)
-    plugin = build_plugin_manifest(args.server_url, args.demo_recording_url)
+def build_plugin_package(output: Path, server_url: str, demo_recording_url: str | None = None) -> str:
+    """Create the portable plugin ZIP, including its skill and MCP configuration."""
+    mcp_url = normalize_mcp_url(server_url)
+    plugin = build_plugin_manifest(server_url, demo_recording_url)
     mcp = {
         "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
         "mcpServers": {
@@ -66,11 +60,30 @@ def main() -> None:
             }
         },
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    with ZipFile(args.output, "w", ZIP_DEFLATED) as archive:
+    skill_root = PACKAGE / "skills"
+    if not any(skill_root.rglob("SKILL.md")):
+        raise ValueError("The portable plugin must include at least one valid skill")
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with ZipFile(output, "w", ZIP_DEFLATED) as archive:
         archive.writestr("plugin.json", json.dumps(plugin, ensure_ascii=False, indent=2) + "\n")
-        archive.write(PACKAGE / "assets" / "dux-logo.png", "assets/dux-logo.png")
         archive.writestr("mcp.json", json.dumps(mcp, ensure_ascii=False, indent=2) + "\n")
+        for subtree in ("assets", "skills"):
+            for path in sorted((PACKAGE / subtree).rglob("*")):
+                if path.is_file():
+                    archive.write(path, path.relative_to(PACKAGE).as_posix())
+    return mcp_url
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--server-url", default=os.environ.get("DUX_PUBLIC_URL"), help="Public HTTPS origin (or its /mcp endpoint)")
+    parser.add_argument("--demo-recording-url", default=os.environ.get("DUX_DEMO_RECORDING_URL"), help="Reviewer-accessible HTTPS walkthrough video; required before submitting for public review")
+    parser.add_argument("--output", type=Path, default=OUTPUT, help="ZIP output path")
+    args = parser.parse_args()
+    if not args.server_url:
+        parser.error("Set DUX_PUBLIC_URL or pass --server-url after deploying the server")
+    mcp_url = build_plugin_package(args.output, args.server_url, args.demo_recording_url)
     print(f"Created {args.output} for {mcp_url}")
     if not args.demo_recording_url:
         print("DRAFT ONLY: add a reviewer-accessible DUX_DEMO_RECORDING_URL before submitting for public review.")

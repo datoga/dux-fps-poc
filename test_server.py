@@ -10,7 +10,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
-from tools.package_chatgpt_plugin import build_plugin_manifest, normalize_mcp_url
+from zipfile import ZipFile
+from tools.package_chatgpt_plugin import build_plugin_manifest, build_plugin_package, normalize_mcp_url
 
 import server
 from engine.build_runtime import curated_game_assets, curated_pak, texture_override_header
@@ -305,6 +306,26 @@ class PluginPackageTests(unittest.TestCase):
     def test_plugin_manifest_rejects_non_https_demo_recording(self):
         with self.assertRaisesRegex(ValueError, "public HTTPS"):
             build_plugin_manifest("https://play.example", "http://video.example/dux-demo")
+
+    def test_plugin_zip_bundles_skill_mcp_and_public_metadata(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "dux.zip"
+            mcp_url = build_plugin_package(output, "https://play.example", "https://video.example/dux-demo")
+            with ZipFile(output) as archive:
+                self.assertEqual(mcp_url, "https://play.example/mcp")
+                self.assertEqual(set(archive.namelist()), {
+                    "plugin.json", "mcp.json", "assets/dux-logo.png", "skills/dux-create/SKILL.md",
+                })
+                plugin = json.loads(archive.read("plugin.json"))
+                mcp = json.loads(archive.read("mcp.json"))
+                skill = archive.read("skills/dux-create/SKILL.md").decode()
+            openai = plugin["extensions"]["com.openai"]
+            self.assertLessEqual(len(openai["interface"]["shortDescription"]), 30)
+            self.assertEqual(mcp["mcpServers"]["dux"]["url"], mcp_url)
+            self.assertIn("name: dux-create", skill)
+            self.assertEqual(len(openai["review"]["test_cases"]["positive"]), 5)
+            self.assertEqual(len(openai["review"]["test_cases"]["negative"]), 3)
+            self.assertTrue(all(case.get("expected_behavior") for case in openai["review"]["test_cases"]["negative"]))
 
 
 if __name__ == "__main__":
