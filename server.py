@@ -415,6 +415,13 @@ class Handler(BaseHTTPRequestHandler):
                 "protocolVersion": requested if requested in supported else "2025-06-18",
                 "capabilities": {"tools": {}, "resources": {"listChanged": False}},
                 "serverInfo": {"name": "dux-game-mcp", "version": "0.1.0"},
+                "instructions": (
+                    "Cuando el usuario quiera crear una partida, llama a open_creator para mostrar el creador. "
+                    "El usuario debe elegir una imagen, revisar su textura y pulsar Crear partida en el widget. "
+                    "No inventes píxeles RGBA ni llames directamente a create_game: el widget prepara y envía "
+                    "solo la textura final después de la acción del usuario. Comparte el enlace devuelto; "
+                    "las partidas gratuitas caducan a los siete días."
+                ),
             }
         if method == "ping":
             return {}
@@ -426,6 +433,7 @@ class Handler(BaseHTTPRequestHandler):
                     "title": "Crear partida Dux",
                     "description": "Abre el creador de Dux para seleccionar la textura final y publicar una partida retro compartible.",
                     "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+                    "outputSchema": {"type": "object", "properties": {"ready": {"type": "boolean"}}, "required": ["ready"]},
                     "_meta": resource_meta,
                     "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
                 },

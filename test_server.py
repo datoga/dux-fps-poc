@@ -196,11 +196,13 @@ class MCPHttpTests(unittest.TestCase):
         initialized = json.loads(body)["result"]
         self.assertEqual(initialized["protocolVersion"], "2026-01-26")
         self.assertIn("tools", initialized["capabilities"])
+        self.assertIn("No inventes píxeles RGBA", initialized["instructions"])
 
         status, _, body = self.post_mcp({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
         self.assertEqual(status, 200)
         tools = json.loads(body)["result"]["tools"]
         self.assertEqual({tool["name"] for tool in tools}, {"open_creator", "create_game", "get_game"})
+        self.assertEqual(tools[0]["outputSchema"]["properties"]["ready"]["type"], "boolean")
         self.assertEqual(tools[1]["_meta"]["ui"]["resourceUri"], "ui://widget/dux-create.html")
 
     def test_mcp_notifications_are_accepted_without_json_body(self):
