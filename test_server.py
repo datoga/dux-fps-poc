@@ -330,6 +330,8 @@ class PluginPackageTests(unittest.TestCase):
             build_plugin_manifest("https://play.example", "http://video.example/dux-demo")
 
     def test_live_release_check_verifies_deployment_before_packaging(self):
+        policy_body = [b"Production policy and operator contact details."]
+
         class FakeResponse:
             def __init__(self, body, status=200):
                 self.body, self.status = body, status
@@ -352,7 +354,7 @@ class PluginPackageTests(unittest.TestCase):
                 )
                 body = json.dumps({"jsonrpc": "2.0", "id": 1, "result": result}).encode()
             elif url.endswith("/privacy") or url.endswith("/terms"):
-                body = b"Production policy and operator contact details."
+                body = policy_body[0]
             elif url.endswith("/dux-demo.mp4"):
                 body = b"x"
                 return FakeResponse(body, 206)
@@ -362,6 +364,17 @@ class PluginPackageTests(unittest.TestCase):
 
         with patch("tools.package_chatgpt_plugin.urlopen", side_effect=fake_urlopen):
             verify_live_deployment("https://dux.com", "https://media.com/dux-demo.mp4")
+            policy_body[0] = b"Draft terms: operator contact must be added before public launch."
+            with self.assertRaisesRegex(ValueError, "draft operator or policy placeholders"):
+                verify_live_deployment("https://dux.com", "https://media.com/dux-demo.mp4")
+
+    def test_plugin_zip_is_not_written_when_live_verification_fails(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "dux.zip"
+            with patch("tools.package_chatgpt_plugin.verify_live_deployment", side_effect=ValueError("not ready")):
+                with self.assertRaisesRegex(ValueError, "not ready"):
+                    build_plugin_package(output, "https://dux.com", "https://media.com/dux-demo.mp4", verify_live=True)
+            self.assertFalse(output.exists())
 
     def test_live_release_check_rejects_example_domains_and_missing_demo(self):
         with self.assertRaisesRegex(ValueError, "reserved example"):
