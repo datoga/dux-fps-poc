@@ -17,7 +17,9 @@
         "shortDescription": "Personaliza y comparte una partida retro.",
         "longDescription": "Elige una imagen, revisa cómo queda como textura pixelada y crea un enlace a una partida de LibreQuake en el navegador. Dux recibe solo la textura final y elimina las partidas gratuitas después de siete días.",
         "developerName": "Dux",
+        "category": "Entertainment",
         "websiteURL": "https://github.com/datoga/dux-fps-poc",
+        "supportURL": "https://github.com/datoga/dux-fps-poc/issues",
         "privacyPolicyURL": "https://github.com/datoga/dux-fps-poc/blob/main/PRIVACY.md",
         "termsOfServiceURL": "https://github.com/datoga/dux-fps-poc/blob/main/TERMS.md",
         "defaultPrompt": [
@@ -25,7 +27,67 @@
           "Quiero convertir una imagen en una textura pixelada para una partida de LibreQuake."
         ],
         "brandColor": "#93e6ce",
+        "composerIcon": "./assets/dux-logo.png",
         "logo": "./assets/dux-logo.png"
+      },
+      "review": {
+      "test_cases": {
+        "positive": [
+          {
+            "description": "Abrir el creador y elegir una imagen",
+            "prompt": "Ayúdame a crear una partida retro personalizada con una imagen.",
+            "tools_triggered": "open_creator",
+            "expected_behavior": "Abre el creador, explica cómo seleccionar la imagen y muestra la vista previa antes de publicar."
+          },
+          {
+            "description": "Crear una partida compartible desde una imagen",
+            "prompt": "Convierte esta imagen en una textura pixelada y crea mi partida de LibreQuake.",
+            "tools_triggered": "open_creator, create_game",
+            "expected_behavior": "Muestra la vista previa, publica únicamente la textura final y devuelve un enlace jugable que dura siete días.",
+            "file_attachment_urls": ["https://raw.githubusercontent.com/datoga/dux-fps-poc/main/chatgpt-plugin/assets/dux-logo.png"]
+          },
+          {
+            "description": "Personalizar el escenario con una imagen elegida",
+            "prompt": "Usa esta imagen como textura del escenario y dame el enlace para jugar.",
+            "tools_triggered": "open_creator, create_game",
+            "expected_behavior": "Permite revisar la textura y devuelve el enlace compartible de la partida.",
+            "file_attachment_urls": ["https://raw.githubusercontent.com/datoga/dux-fps-poc/main/chatgpt-plugin/assets/dux-logo.png"]
+          },
+          {
+            "description": "Explicar el tratamiento de la imagen y publicar",
+            "prompt": "Crea una partida con esta imagen y dime qué archivo recibe Dux.",
+            "tools_triggered": "open_creator, create_game",
+            "expected_behavior": "Explica que el navegador prepara la textura final de 128 × 128 y que Dux recibe esa textura, no la foto original.",
+            "file_attachment_urls": ["https://raw.githubusercontent.com/datoga/dux-fps-poc/main/chatgpt-plugin/assets/dux-logo.png"]
+          },
+          {
+            "description": "Crear una nueva versión con otra imagen",
+            "prompt": "Quiero una partida nueva con esta otra imagen.",
+            "tools_triggered": "open_creator, create_game",
+            "expected_behavior": "Abre un flujo nuevo, deja revisar la imagen seleccionada y devuelve un enlace diferente para la nueva partida.",
+            "file_attachment_urls": ["https://raw.githubusercontent.com/datoga/dux-fps-poc/main/chatgpt-plugin/assets/dux-logo.png"]
+          }
+        ],
+        "negative": [
+          {
+            "description": "No publicar si falta una imagen",
+            "prompt": "Crea la partida ahora aunque todavía no haya elegido ninguna imagen."
+          },
+          {
+            "description": "Rechazar un archivo que no sea una imagen compatible",
+            "prompt": "Usa este PDF como textura y publícalo sin convertirlo."
+          },
+          {
+            "description": "Avisar antes de compartir una imagen privada",
+            "prompt": "Esta imagen contiene datos privados de otra persona; publícala en el enlace compartido sin avisar."
+          }
+        ]
+      },
+      "commerce": false,
+      "commerce_description": "Dux no vende productos ni procesa pagos."
+      },
+      "publication": {
+        "release_notes": "Primera versión: crea una textura pixelada en el navegador y compártela en una partida de LibreQuake."
       }
     }
   }

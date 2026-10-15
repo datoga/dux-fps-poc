@@ -40,10 +40,14 @@ Connect `https://your-tunnel.example/mcp` as a custom MCP server in ChatGPT. The
 To prepare a public plugin package after deploying Dux to a **stable public HTTPS domain**:
 
 ```sh
-DUX_PUBLIC_URL=https://play.example.com python3 tools/package_chatgpt_plugin.py
+DUX_PUBLIC_URL=https://play.example.com \
+DUX_DEMO_RECORDING_URL=https://example.com/dux-demo.mp4 \
+python3 tools/package_chatgpt_plugin.py
 ```
 
-This creates `dist/dux-chatgpt-plugin.zip` with the portable manifest and remote Streamable HTTP endpoint. Upload the ZIP and endpoint through the [plugin submission portal](https://platform.openai.com/plugins). Public listing still requires an eligible verified publisher identity, a reachable HTTPS MCP server, valid public policy pages, tool scan, and OpenAI review and approval. A local address or temporary tunnel is only for testing. The policy files in this repo are launch drafts and explicitly identify the operator/contact details that must be completed before publication.
+This creates `dist/dux-chatgpt-plugin.zip` with the portable manifest, remote Streamable HTTP endpoint, public listing URLs, and five positive plus three negative review cases. Without `DUX_DEMO_RECORDING_URL`, the script creates a **draft only** and prints a warning; public MCP review requires a reviewer-accessible walkthrough video. The package points its website, privacy, and terms URLs at the deployed Dux origin and its support URL at the repository's issue tracker.
+
+Before submission, replace the draft policy pages with reviewed production policies and real operator/contact details. Then upload the ZIP through the [OpenAI plugin submission portal](https://platform.openai.com/plugins), verify the publisher identity, complete domain verification, connect and scan the live MCP endpoint, and submit for review. Public release happens only after OpenAI approves the submission. A local address or temporary tunnel is for testing only.
 
 For OpenAI domain verification, set `DUX_OPENAI_APPS_CHALLENGE` to the exact token from the portal. Dux then serves that token at `/.well-known/openai-apps-challenge`.
 

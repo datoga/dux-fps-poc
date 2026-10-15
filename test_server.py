@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
-from tools.package_chatgpt_plugin import normalize_mcp_url
+from tools.package_chatgpt_plugin import build_plugin_manifest, normalize_mcp_url
 
 import server
 from engine.build_runtime import curated_pak
@@ -230,6 +230,23 @@ class PluginPackageTests(unittest.TestCase):
             normalize_mcp_url("http://play.example")
         with self.assertRaisesRegex(ValueError, "only the origin"):
             normalize_mcp_url("https://play.example/api")
+
+    def test_plugin_manifest_uses_deployed_policy_urls_and_complete_review_cases(self):
+        plugin = build_plugin_manifest("https://play.example/mcp", "https://video.example/dux-demo")
+        openai = plugin["extensions"]["com.openai"]
+        interface = openai["interface"]
+        self.assertEqual(interface["websiteURL"], "https://play.example")
+        self.assertEqual(interface["privacyPolicyURL"], "https://play.example/privacy")
+        self.assertEqual(interface["termsOfServiceURL"], "https://play.example/terms")
+        self.assertEqual(interface["supportURL"], "https://github.com/datoga/dux-fps-poc/issues")
+        self.assertEqual(interface["category"], "Entertainment")
+        self.assertEqual(len(openai["review"]["test_cases"]["positive"]), 5)
+        self.assertEqual(len(openai["review"]["test_cases"]["negative"]), 3)
+        self.assertEqual(openai["review"]["demo_recording_url"], "https://video.example/dux-demo")
+
+    def test_plugin_manifest_rejects_non_https_demo_recording(self):
+        with self.assertRaisesRegex(ValueError, "public HTTPS"):
+            build_plugin_manifest("https://play.example", "http://video.example/dux-demo")
 
 
 if __name__ == "__main__":
